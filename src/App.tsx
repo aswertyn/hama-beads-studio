@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { zipSync } from 'fflate';
-import { FaFillDrip, FaUndo, FaRedo } from 'react-icons/fa';
+import { FaFillDrip, FaMoon, FaUndo, FaRedo, FaSun } from 'react-icons/fa';
 
 type RGB = [number, number, number];
 type Bead = { name: string; hex: string; rgb: RGB };
@@ -346,7 +346,32 @@ function readProject(text: string) {
   return { project: project as ProjectFile, histories };
 }
 
+function initialDarkMode() {
+  try {
+    const savedTheme = localStorage.getItem('hama-beads-theme');
+    if (savedTheme === 'dark' || savedTheme === 'light') return savedTheme === 'dark';
+  } catch {
+    // The editor can still use a theme when browser storage is unavailable.
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
 export default function App() {
+  const [darkMode, setDarkMode] = useState(initialDarkMode);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
+  }, [darkMode]);
+
+  function toggleTheme() {
+    const next = !darkMode;
+    setDarkMode(next);
+    try {
+      localStorage.setItem('hama-beads-theme', next ? 'dark' : 'light');
+    } catch {
+      // Keep the selected theme for this session.
+    }
+  }
   const [source, setSource] = useState<HTMLImageElement | null>(null);
   const [size, setSize] = useState<GridSize>(40);
   const [histories, setHistories] = useState<Partial<Record<GridSize, EditHistory>>>({});
@@ -597,10 +622,6 @@ export default function App() {
       setExporting(false);
     }
   }
-  function exportCSV() {
-    download('conteo-hama.csv', countCSV(counts, total));
-  }
-
   function exportProject() {
     const edits: ProjectFile['edits'] = {};
     for (const gridSize of gridSizes) {
@@ -655,11 +676,23 @@ export default function App() {
     <main>
       <header>
         <div>
-          <span className="eyebrow">HAMA BEADS STUDIO · V0.2.0</span>
+          <span className="eyebrow">HAMA BEADS STUDIO · V0.2.1</span>
           <h1>De imagen a patrón de cuentas</h1>
           <p>Convierte, ajusta y cuenta cada cuenta de tu diseño.</p>
         </div>
-        <span className="chip">{size} × {size}</span>
+        <div className="header-actions">
+          <button
+            className="theme-toggle"
+            type="button"
+            onClick={toggleTheme}
+            aria-label="Modo oscuro"
+            aria-pressed={darkMode}
+            title={darkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          >
+            {darkMode ? <FaSun aria-hidden="true" /> : <FaMoon aria-hidden="true" />}
+          </button>
+          <span className="chip">{size} × {size}</span>
+        </div>
       </header>
 
       <div className="layout">
@@ -722,9 +755,6 @@ export default function App() {
               title="Descarga las cuatro variantes del patrón y el conteo por color en un ZIP."
             >
               {exporting ? 'Preparando ZIP…' : 'Descargar variantes ZIP'}
-            </button>
-            <button onClick={exportCSV} title="Descarga una tabla con la cantidad de cuentas de cada color.">
-              Exportar CSV
             </button>
             <button onClick={exportProject} title="Guarda un archivo .hama editable con la imagen, las opciones y tus retoques.">
               Guardar proyecto
