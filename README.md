@@ -1,4 +1,4 @@
-# Hama Beads Studio v0.2.0
+# Hama Beads Studio
 
 De imágenes a patrón de cuentas.
 
